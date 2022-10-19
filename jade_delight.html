@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Jade Delight</title>
+
+<!-- added code start -->
+<script
+  src="https://code.jquery.com/jquery-3.6.0.min.js"
+  integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+  crossorigin="anonymous"> 
+</script>
+
+<style>
+  label {
+    display: inline-block;
+    width: 150px;
+    text-align: right;
+  }
+</style>
+
+<!-- added code end -->
+</head>
+
+<body>
+<script>
+
+function MenuItem(name, cost)
+{
+	this.name = name;
+	this.cost=cost;
+}
+
+menuItems = new Array(
+	new MenuItem("Chicken Chop Suey", 5.5),
+	new MenuItem("Sweet and Sour Pork", 7.25),
+	new MenuItem("Shrimp Lo Mein", 6.80),
+	new MenuItem("Moo Shi Chicken", 9.50),
+	new MenuItem("Fried Rice", 3.25)
+);
+
+function makeSelect(name, minRange, maxRange)
+{
+	var t= "";
+	t = "<select name='" + name + "' size='1'>";
+	for (j=minRange; j<=maxRange; j++)
+	   t += "<option>" + j + "</option>";
+	t+= "</select>"; 
+	return t;
+}
+
+function td(content, className="")
+{
+	return "<td class = '" + className + "'>" + content + "</td>";
+}
+	
+</script>
+
+<h1>Jade Delight</h1>
+<form name="order">
+
+<p class="userInfo"><label>First Name:</label> <input type="text"  name='fname' /></p>
+<p class="userInfo"><label>Last Name*:</label>  <input type="text"  name='lname' /></p>
+<p class="userInfo address"><label>Street*:</label> <input type="text" name='street' /></p>
+<p class="userInfo address"><label>City*:</label> <input type="text" name='city' /></p>
+<p class="userInfo"><label>Phone*:</label> <input type="text"  name='phone' /></p>
+<p> 
+	<input type="radio"  name="p_or_d" value = "pickup" checked="checked"/>Pickup  
+	<input type="radio"  name='p_or_d' value = 'delivery'/>
+	Delivery
+</p>
+<table border="0" cellpadding="3">
+  <tr>
+    <th>Select Item</th>
+    <th>Item Name</th>
+    <th>Cost Each</th>
+    <th>Total Cost</th>
+  </tr>
+<script>
+
+  var s = "";
+  for (i=0; i< menuItems.length; i++)
+  {
+	  s += "<tr>";
+	  s += td(makeSelect("quan" + i, 0, 10),"selectQuantity");
+	  s += td(menuItems[i].name, "itemName");
+	  s += td("$" +menuItems[i].cost.toFixed(2), "cost");
+	  s += td("$<input type='text' name='cost'/>", "totalCost");
+	  s+= "</tr>";
+  }
+  document.writeln(s);
+</script>
+</table>
+<p class="subtotal totalSection"><label>Subtotal</label>: 
+   $ <input type="text"  name='subtotal' id="subtotal" />
+</p>
+<p class="tax totalSection"><label>Mass tax 6.25%:</label>
+  $ <input type="text"  name='tax' id="tax" />
+</p>
+<p class="total totalSection"><label>Total:</label> $ <input type="text"  name='total' id="total" />
+</p>
+
+<input type = "button" value = "Submit Order" />
+
+<!-- new code -->
+<script>
+
+  // add event listener for when item quantities are changed
+  for (i = 0; i < menuItems.length; i++) {
+    change = document.getElementsByName("quan" + i)[0];
+    change.setAttribute("onchange", "updateItemTotal(" + i + ", this.selectedIndex)");
+  }
+
+  totalcosts = document.getElementsByName("cost");
+  subtotal = document.getElementById("subtotal");
+  tax = document.getElementById("tax");
+  total = document.getElementById("total");
+  taxp = 0.0625;
+  initializeTotals();
+
+  // initializes item subtotals and overall totals to 0.00
+  function initializeTotals() 
+  {
+    for (i = 0; i < menuItems.length; i++) {
+      totalcosts[i].value = (0).toFixed(2);
+    }
+    subtotal.value = (0).toFixed(2);
+    tax.value = (0).toFixed(2);
+    total.value = (0).toFixed(2);
+  }
+
+  // updates totals given the index of the modified item
+  function updateItemTotal(index, quantity) 
+  {
+    cost = menuItems[index].cost;
+    totalcosts[index].value = (quantity * cost).toFixed(2);
+    updateTotals();
+  }
+
+  // updates subtotal, tax and total
+  function updateTotals() 
+  {
+    subt = 0;
+    for (i = 0; i < menuItems.length; i++)
+      subt += parseFloat(totalcosts[i].value);
+
+    subtotal.value = subt.toFixed(2);
+    tax.value = (subtotal.value * taxp).toFixed(2);
+    total.value = (parseFloat(subtotal.value) + parseFloat(tax.value)).toFixed(2);
+  }
+
+  // initialize address to be hidden, since default is pickup
+  address = document.getElementsByClassName("userInfo address");
+  changeAddressDisplay("none");
+
+  // show/hide address when p_or_d selection changes
+  $('input[type=radio][name=p_or_d]').change(function() {
+    if (this.value == 'pickup')
+      changeAddressDisplay("none");
+    else if (this.value == 'delivery')
+      changeAddressDisplay("block");
+  });
+
+  // changes the "display" css for the address input to the given input
+  function changeAddressDisplay(display) {
+    for (i = 0; i < address.length; i++)
+      address[i].style.display = display;
+  }
+
+  // add event listener for when the form is submitted
+  $('input[type=button]').click(verifyOrder);
+  
+  // verifies the order has required features per the spec
+  function verifyOrder() {
+    deliverytype = document.querySelector('input[name="p_or_d"]:checked').value;
+    
+    // verify last name
+    if (document.order.lname.value == "") {
+      return errorMessage("Last Name");
+    }
+
+    // verify street and address only if delivery order
+    if (deliverytype == "delivery") {
+      if (document.order.street.value == "")
+        return errorMessage("Street");
+      else if (document.order.city.value == "")
+        return errorMessage("City");
+    }
+
+    // verify phone number is 7 or 9 digits
+    const phonepattern = /^[0-9]{7}|[0,9]{10}$/;
+    if (!phonepattern.test(document.order.phone.value))
+      return errorMessage("Phone Number");
+
+    // verify at least one item was ordered
+    items = 0;
+    quantities = document.querySelectorAll("[name^=quan]");
+    for (i = 0; i < quantities.length; i++)
+      items += quantities[i].value;
+    if (items == 0)
+      return errorMessage("Ordering at least one item");
+
+    // if no errors, then place order
+    placeOrder();
+  }
+
+  // print error message given a missing field in the form
+  function errorMessage(missingfield) {
+    alert("Error: " + missingfield + " is required"); 
+    return false;
+  }
+
+  // place the order, opening second window with all order info
+  function placeOrder() {
+    ordertime = (new Date()).getTime();
+    alert("Thank you for your Order!"); 
+
+    receipt = window.open("");
+
+    html = "<h1>Your Receipt:</h1>";
+    html += "<table border='0' cellpadding='3'><tr><th>Item</th><th>Item Name</th><th>Cost Each</th><th>Total Cost</th></tr>"
+    
+    for (i = 0; i < menuItems.length; i++) {
+      // skip items which weren't ordered
+      if (totalcosts[i].value != 0) {
+        html += "<tr><td>" + document.getElementsByName("quan" + i)[0].value; + "</td>";
+        html += "<td>" +  menuItems[i].name + "</td>";
+        html += "<td>" +  menuItems[i].cost.toFixed(2) + "</td>";
+        html += "<td>" +  totalcosts[i].value + "</td></tr>";
+      }
+    }
+
+    html += "</table><p>Subtotal: $" + subtotal.value + "</p>";
+    html += "<p>Tax: $" + tax.value + "</p>";
+    html += "<p>Total: $" + total.value + "</p>";
+
+    // calculate delivery/pickup time (40 mins if delivery, 20 mins if pickup)
+    deliverytype = document.querySelector('input[name="p_or_d"]:checked').value;
+
+    if (deliverytype == "delivery") {
+      deliverytime = new Date(ordertime + 40*60000);
+      html += "<p>Your order will be delivered at " + deliverytime.toLocaleTimeString() + "</p>";
+    }
+    else if (deliverytype == "pickup") {
+      deliverytime = new Date(ordertime + 20*60000);
+      html += "<p>Your order will be ready for pickup at " + deliverytime.toLocaleTimeString() + "</p>";
+    }
+
+    receipt.document.writeln(html);
+  }
+
+</script>
+
+</form>
+</body>
+</html>
